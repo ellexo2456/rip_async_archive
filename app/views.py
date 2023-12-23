@@ -8,15 +8,15 @@ import requests
 
 from concurrent import futures
 
-CALLBACK_URL = "http://0.0.0.0:8000/stocks/"
-
+CALLBACK_URL = "http://localhost:8080/expedition/archieved"
+AUTH_KEY = "auth"
 executor = futures.ThreadPoolExecutor(max_workers=1)
 
 
-def get_random_status(pk):
+def get_random_status(video_id):
     time.sleep(5)
     return {
-        "id": pk,
+        "id": video_id,
         "status": bool(random.getrandbits(1)),
     }
 
@@ -28,17 +28,23 @@ def status_callback(task):
     except futures._base.CancelledError:
         return
 
-    nurl = str(CALLBACK_URL + str(result["id"]) + '/put/')
-    answer = {"is_growing": result["status"]}
-    requests.put(nurl, data=answer, timeout=3)
+    url = str(CALLBACK_URL + str(result["id"]))
+    response = {"archived": result["status"]}
+    requests.put(url, data=response, timeout=3)
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 def archived(request):
-    if "pk" in request.data.keys():
-        id = request.data["pk"]
+    if "auth_key" not in request.query_params:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    if request.data["auth_key"] != AUTH_KEY:
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+    if "video_id" in request.data.keys():
+        id = request.data["video_id"]
 
         task = executor.submit(get_random_status, id)
         task.add_done_callback(status_callback)
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
     return Response(status=status.HTTP_400_BAD_REQUEST)

@@ -4,5 +4,5 @@ from app import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path(r'', views.archived, name='set-status'),
+    path(r'', views.archived, name='archived'),
 ]
